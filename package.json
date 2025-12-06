@@ -1,0 +1,25 @@
+{
+  "name": "promptify_api",
+  "version": "1.0.0",
+  "description": "Serverless API to improve prompts using Google Gemini AI",
+  "keywords": [
+    "promptify",
+    "gemini",
+    "prompt-engineering",
+    "serverless"
+  ],
+  "license": "ISC",
+  "author": "kt345",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test-local.js",
+    "dev": "node test-local.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
