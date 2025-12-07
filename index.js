@@ -18,68 +18,61 @@ Khi cải thiện prompt, hãy tuân theo các nguyên tắc sau:
 
 Mục tiêu cuối cùng là tạo ra một prompt không chỉ rõ ràng mà còn truyền cảm hứng, giúp AI tạo ra kết quả tốt nhất có thể, vượt xa mong đợi ban đầu. Trả về chỉ prompt đã được cải thiện, không thêm bất kỳ lời giải thích hay lời chào nào.`;
 
-// Main handler for both AWS Lambda and Google Cloud Functions
-export const handler = async (event, context) => {
+// Main handler for Google Cloud Functions
+export const handler = async (req, res) => {
+    // Set CORS headers
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Handle preflight OPTIONS request
+    if (req.method === 'OPTIONS') {
+        return res.status(204).send('');
+    }
+
     try {
         // Check if API key is configured
         if (!LLM_API_KEY) {
-            return createResponse(500, {
+            return res.status(500).json({
                 error: 'Server configuration error',
                 message: 'LLM_API_KEY is not configured'
             });
         }
 
-        // Handle different event formats (AWS Lambda vs GCP Cloud Functions)
-        const httpMethod = event.httpMethod || event.requestContext?.http?.method || 'GET';
-        const body = event.body;
-
-        let resBody = {};
+        // Get HTTP method from GCP Cloud Functions request
+        const httpMethod = req.method;
 
         switch (httpMethod) {
             case 'GET':
-                resBody = getInstruction();
-                return createResponse(200, resBody);
+                const instructions = getInstruction();
+                return res.status(200).json(instructions);
 
             case 'POST':
                 try {
-                    const requestData = typeof body === 'string' ? JSON.parse(body) : body;
-                    resBody = await getImprovedPrompt(requestData);
-                    return createResponse(200, resBody);
+                    const requestData = req.body;
+                    const result = await getImprovedPrompt(requestData);
+                    return res.status(200).json(result);
                 } catch (parseError) {
-                    return createResponse(400, {
+                    return res.status(400).json({
                         error: 'Invalid request',
-                        message: 'Request body must be valid JSON'
+                        message: parseError.message
                     });
                 }
 
             default:
-                return createResponse(405, {
+                return res.status(405).json({
                     error: 'Method not allowed',
                     message: `HTTP method ${httpMethod} is not supported`
                 });
         }
     } catch (error) {
         console.error('Handler error:', error);
-        return createResponse(500, {
+        return res.status(500).json({
             error: 'Internal server error',
             message: error.message
         });
     }
 };
-
-// Helper function to create response with CORS headers
-function createResponse(statusCode, body) {
-    return {
-        statusCode,
-        headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        },
-        body: JSON.stringify(body)
-    };
-}
 
 // Returns API usage instructions and examples
 function getInstruction() {
